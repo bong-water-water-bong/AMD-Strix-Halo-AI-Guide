@@ -1,0 +1,23 @@
+# AMD Audio Fix for ComfyUI
+# 
+# Problem: Audio tensors don't get moved to CPU before numpy conversion
+# Error: "can't convert cuda:0 device type tensor to numpy"
+# Cause: Works on NVIDIA by accident, crashes on AMD
+#
+# Apply with:
+# sed -i 's/\.float()\.numpy()/.float().cpu().numpy()/g' ~/ComfyUI/comfy_api/latest/_input_impl/video_types.py
+#
+# Or manually edit line 377 of video_types.py:
+# Before: .float().numpy()
+# After:  .float().cpu().numpy()
+
+--- a/comfy_api/latest/_input_impl/video_types.py
++++ b/comfy_api/latest/_input_impl/video_types.py
+@@ -374,7 +374,7 @@ class VideoFromComponents:
+             for i in range(num_frames):
+                 start = i * samples_per_frame
+                 end = start + samples_per_frame
+-                frame = av.AudioFrame.from_ndarray(waveform.movedim(2, 1).reshape(1, -1).float().numpy(), format='flt', layout='mono')
++                frame = av.AudioFrame.from_ndarray(waveform.movedim(2, 1).reshape(1, -1).float().cpu().numpy(), format='flt', layout='mono')
+                 frame.rate = sample_rate
+                 frame.pts = i * samples_per_frame
